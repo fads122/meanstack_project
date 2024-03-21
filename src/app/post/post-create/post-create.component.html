@@ -1,0 +1,32 @@
+<mat-card>
+  <form (submit)="AddPost(postForm)" #postForm="ngForm">
+    <mat-form-field>
+      <input
+        matInput
+        type="text"
+        name="title"
+        ngModel
+        required
+        #title="ngModel"
+        placeholder="Enter title here"
+        />
+        <mat-error *ngIf="title.invalid">Please enter a post title.</mat-error>
+    </mat-form-field>
+    <mat-label></mat-label>
+    <mat-form-field>
+      <textarea
+      matInput
+      rows="4"
+      name="content"
+      ngModel
+      required
+      #content="ngModel"
+      placeholder="Enter content here"
+      >
+      </textarea>
+      <mat-error *ngIf="content.invalid">Please enter a post content.</mat-error>
+    </mat-form-field>
+    <input type="file" (change)="onFileSelected($event)" name="image">
+    <button mat-raised-button color="primary" type="submit">Save</button>
+  </form>
+</mat-card>
