@@ -1,30 +1,29 @@
-<mat-accordion multi="true" *ngIf="posts.length > 0">
+<mat-accordion multi="false" *ngIf="posts.length > 0">
   <mat-expansion-panel *ngFor="let post of posts">
-      <mat-expansion-panel-header>
-        {{ post.title }}
-      </mat-expansion-panel-header>
-      <div>
-        <!-- Content -->
-        <p *ngIf="!post.editMode">{{ post.content }}</p>
-        <!-- Image -->
-        <img *ngIf="post.image" [src]="post.image" alt="Post image">
-        <!-- Edit Form -->
-        <form *ngIf="post.editMode" (submit)="onUpdatePost(post)">
-         <mat-form-field appearance="outline">
-            <mat-label>Title</mat-label>
-            <input matInput type="text" [(ngModel)]="post.title" name="title" required>
+     <mat-expansion-panel-header>
+       {{post.title}}
+     </mat-expansion-panel-header>
+     <div>
+       <img *ngIf="post.imageUrl" [src]="'http://localhost:3000/' + post.imageUrl" alt="Post Image" class="post-image">
+       <p *ngIf="currentEditPostId !== post._id">{{ post.content }}</p>
+       <form *ngIf="currentEditPostId === post._id">
+         <mat-form-field>
+           <mat-label>Title</mat-label>
+           <input matInput [(ngModel)]="post.title" name="title">
          </mat-form-field>
-         <mat-form-field appearance="outline">
-            <mat-label>Content</mat-label>
-            <textarea matInput rows="4" [(ngModel)]="post.content" name="content" required></textarea>
+         <mat-form-field>
+           <mat-label>Content</mat-label>
+           <textarea matInput [(ngModel)]="post.content" name="content"></textarea>
          </mat-form-field>
-         <button mat-raised-button color="primary" type="submit">Save</button>
-        </form>
-      </div>
-      <mat-action-row>
-        <button mat-button color="primary" (click)="toggleEditMode(post)">Edit</button>
-        <button mat-button color="warn" (click)="onDelete(post._id)">Delete</button>
-      </mat-action-row>
+       </form>
+     </div>
+     <mat-action-row>
+       <button mat-button color="primary" *ngIf="currentEditPostId !== post._id" (click)="editPost(post._id)">Edit</button>
+       <button mat-button color="warn" (click)="deletePost(post._id)">Delete</button>
+       <span *ngIf="currentEditPostId === post._id">
+         <button mat-button color="primary" (click)="savePost(post._id, post)">Save</button>
+       </span>
+     </mat-action-row>
   </mat-expansion-panel>
-  </mat-accordion>
-  <p class="info-text mat-body-1" *ngIf="posts.length <= 0">No posts added.</p>
+ </mat-accordion>
+ <p class="info-text mat-body-1" *ngIf="posts.length <= 0">No post Added</p>

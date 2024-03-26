@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Post } from '../post.model';
 import { Subscription } from 'rxjs';
 import { PostService } from '../post.service';
-
+import { Post } from '../post.model';
+import { map, tap, switchMap } from 'rxjs/operators';
 
 @Component({
  selector: 'app-post-list',
@@ -11,46 +11,46 @@ import { PostService } from '../post.service';
 })
 export class PostListComponent implements OnInit, OnDestroy {
  posts: Post[] = [];
- private postsSub!: Subscription;
- selectedFile: File | null = null;
+ currentEditPostId: string | null = null; // Track the post being edited
+ private postUpdateSubscription!: Subscription;
 
- constructor(public postService: PostService) {}
+ constructor(public postService: PostService) { }
 
- ngOnInit(): void {
-    this.postService.getPosts();
-    this.postsSub = this.postService
-      .getPostUpdateListener()
-      .subscribe((posts: Post[]) => {
+ ngOnInit() {
+    // Combine the subscriptions to fetchPosts and listenForPostUpdates
+    this.postUpdateSubscription = this.postService.fetchPosts().pipe(
+        switchMap(() => this.postService.listenForPostUpdates())
+    ).subscribe(posts => {
         this.posts = posts;
-      });
+    });
+}
+
+ ngOnDestroy() {
+    // Unsubscribe to prevent memory leaks
+    this.postUpdateSubscription.unsubscribe();
  }
 
- ngOnDestroy(): void {
-    this.postsSub.unsubscribe();
- }
-
- onDelete(postId: string): void {
-    this.postService.deletePost(postId).subscribe(() => {
+ deletePost(postId: string) {
+    this.postService.removePost(postId).subscribe(() => {
+      // Remove the deleted post from the local posts array
       this.posts = this.posts.filter(post => post._id !== postId);
     });
  }
 
- toggleEditMode(post: Post): void {
-  post.editMode = !post.editMode;
-  console.log(`Toggled edit mode for post with ID: ${post._id}, new editMode: ${post.editMode}`);
+ editPost(postId: string) {
+    this.currentEditPostId = postId; // Set the post ID being edited
  }
 
- onFileSelected(event: Event) {
-  const fileInput = event.target as HTMLInputElement;
-  if (fileInput.files && fileInput.files.length > 0) {
-     this.selectedFile = fileInput.files[0];
-  }
+ savePost(postId: string, updatedPost: Post) {
+    this.postService.updatePost(postId, updatedPost).subscribe(() => {
+      // Update the local posts array with the updated post
+      const index = this.posts.findIndex(post => post._id === postId);
+      if (index !== -1) {
+        this.posts[index] = updatedPost;
+      }
+      this.currentEditPostId = null; // Exit edit mode
+    }, error => {
+      console.error('Error saving post:', error);
+    });
  }
-
- onUpdatePost(post: Post): void {
- // If no file is selected, just update the post without the image
- this.postService.editPost(post._id, post.title, post.content, '').subscribe(() => {
-    this.toggleEditMode(post);
- });
-}
 }

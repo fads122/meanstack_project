@@ -1,47 +1,57 @@
-// post-create.component.ts
 import { Component } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { Post } from '../post.model';
 import { PostService } from '../post.service';
 
 @Component({
- selector: 'app-post-create',
- templateUrl: './post-create.component.html',
- styleUrls: ['./post-create.component.css'],
+    selector: 'app-post-create',
+    templateUrl: './post-create.component.html',
+    styleUrls: ['./post-create.component.css'],
 })
 export class PostCreateComponent {
- enteredTitle = '';
- enteredContent = '';
- // Define the newPost property with default values
- newPost: Post = {
-    _id: '',
-    title: '',
-    content: '',
-    image: '', // Initialize with an empty string or null
-    editMode: false
- };
+    postTitle = '';
+    postContent = '';
+    postImageUrl = '';
+    uploadedImageDataUrl = '';
+    uploadedImageFile: File | null = null; // Add this line to store the uploaded image file
 
- constructor(private postService: PostService) {}
+    constructor(public postService: PostService) {}
 
- AddPost(form: NgForm) {
-    if (form.invalid) {
-      return;
+    handleFileInputChange(event: Event) {
+        const fileInput = event.target as HTMLInputElement;
+        if (fileInput.files && fileInput.files.length > 0) {
+            this.uploadedImageFile = fileInput.files[0]; // Store the uploaded file
+            this.readFile(fileInput.files[0]); // Read the file to get the data URL
+        }
     }
-    const title = form.value.title;
-    const content = form.value.content;
-    this.postService.addPost(title, content);
-    form.resetForm();
- }
 
- onFileSelected(event: Event) {
- const fileInput = event.target as HTMLInputElement;
- if (fileInput.files && fileInput.files.length > 0) {
-    const file = fileInput.files[0];
-    // Call a method to upload the file and get the image URL
-    this.postService.uploadFile(file).subscribe(imageUrl => {
-      // Save the image URL to the newPost object
-      this.newPost.image = imageUrl;
-    });
- }
-}
+    private readFile(file: File): void {
+        const fileReader = new FileReader();
+        fileReader.onload = (e: any) => {
+            this.uploadedImageDataUrl = e.target.result;
+        };
+        fileReader.readAsDataURL(file);
+    }
+
+    addNewPost(form: NgForm) {
+        if (form.invalid) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('title', form.value.title);
+        formData.append('content', form.value.content);
+        if (this.uploadedImageFile) {
+            formData.append('image', this.uploadedImageFile); // Append the image file to the form data
+        }
+
+        this.postService.createPost(formData).subscribe(() => {
+            this.resetFormAndImage(form);
+        });
+    }
+
+    private resetFormAndImage(form: NgForm): void {
+        form.resetForm();
+        this.uploadedImageDataUrl = '';
+        this.uploadedImageFile = null; // Reset the uploaded image file
+    }
 }

@@ -4,20 +4,8 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const Post = require('./models/post.js');
 const mongoose = require('mongoose');
-const multer = require('multer'); // Require Multer
-const path = require('path'); // Require the path module
-
-// Set up Multer storage
-const storage = multer.diskStorage({
- destination: function (req, file, cb) {
-    cb(null, 'uploads/');
- },
- filename: function (req, file, cb) {
-    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
- }
-});
-
-const upload = multer({ storage: storage }); // Create the Multer middleware
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); // Configure multer to store uploaded files in an 'uploads' directory
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -40,13 +28,6 @@ app.use((req, res, next)=>{
     next();
 })
 
-// Define the upload endpoint
-app.post('/api/upload', upload.single('image'), (req, res) => {
- // req.file is the 'image' file
- // req.body will hold the text fields, if there were any
- res.json({ message: 'File uploaded successfully', imageUrl: req.file.path });
-});
-
 // Route to fetch a single post by its ID
 app.get('/api/posts/:id', async (req, res) => {
  try {
@@ -65,37 +46,40 @@ app.get('/api/posts/:id', async (req, res) => {
 // Route to update a post
 app.put('/api/posts/:id', async (req, res) => {
  try {
-    const postId = req.params.id;
-    const updatedPost = req.body;
-    const result = await Post.findByIdAndUpdate(postId, updatedPost, { new: true });
-    if (!result) {
-      return res.status(404).json({ message: 'Post not found' });
-    }
-    res.status(200).json({ message: 'Post updated successfully', post: result });
+     const postId = req.params.id;
+     const updatedPost = req.body;
+     const result = await Post.findByIdAndUpdate(postId, updatedPost, { new: true });
+     console.log('Updated post:', result); // Log the updated post
+     if (!result) {
+       return res.status(404).json({ message: 'Post not found' });
+     }
+     res.status(200).json({ message: 'Post updated successfully', post: result });
  } catch (error) {
-    console.error('Error updating post:', error);
-    res.status(500).json({ message: 'Error updating post' });
+     console.error('Error updating post:', error);
+     res.status(500).json({ message: 'Error updating post' });
  }
-});
+ });
 
-app.post("/api/posts", (req, res, next)=> {
-    const post = new Post({
-        title: req.body.title,
-        content: req.body.content
-    });
-    post.save()
-    .then(savedPost => {
-        console.log(savedPost);
-        res.status(201).json({
-            message: 'post added successfully'
-        });
-    })
-    .catch(err => {
-        console.error(err);
-        res.status(500).json({
-            message: 'Error saving post'
-        });
-    });
+app.post("/api/posts", upload.single('image'), (req, res, next) => {
+  console.log('Received file:', req.file); // Log the received file
+  const post = new Post({
+      title: req.body.title,
+      content: req.body.content,
+      imageUrl: req.file.path // Store the path to the uploaded file
+  });
+  post.save()
+  .then(savedPost => {
+      console.log('Saved post:', savedPost);
+      res.status(201).json({
+          message: 'post added successfully'
+      });
+  })
+  .catch(err => {
+      console.error('Error saving post:', err);
+      res.status(500).json({
+          message: 'Error saving post'
+      });
+  });
 });
 
 // Correctly placed delete route handler
@@ -110,7 +94,7 @@ app.delete('/api/posts/:id', async (req, res) => {
  }
 });
 
-app.use('/api/posts', (req, res, next)=> {
+app.use('/api/posts', (req, res, next) => {
    Post.find().then(documents => {
     res.status(200).json({
         message: 'Posts fetched successfully',
@@ -118,5 +102,8 @@ app.use('/api/posts', (req, res, next)=> {
      });
     })
 });
+
+// Serve static files from the 'uploads' directory
+app.use('/uploads', express.static('uploads'));
 
 module.exports = app;
